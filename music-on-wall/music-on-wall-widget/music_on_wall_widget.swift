@@ -8,72 +8,42 @@
 import WidgetKit
 import SwiftUI
 
+// 위젯에 들어갈 데이터 구조
+struct SimpleEntry: TimelineEntry {
+    let date: Date
+}
+
+// 위젯 데이터 공급자
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), emoji: "😀")
+        SimpleEntry(date: Date())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), emoji: "😀")
+        let entry = SimpleEntry(date: Date())
         completion(entry)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
-        var entries: [SimpleEntry] = []
-
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, emoji: "😀")
-            entries.append(entry)
-        }
-
-        let timeline = Timeline(entries: entries, policy: .atEnd)
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
+        let entry = SimpleEntry(date: Date())
+        let timeline = Timeline(entries: [entry], policy: .never)
         completion(timeline)
     }
-
-//    func relevances() async -> WidgetRelevances<Void> {
-//        // Generate a list containing the contexts this widget is relevant in.
-//    }
 }
 
-struct SimpleEntry: TimelineEntry {
-    let date: Date
-    let emoji: String
-}
-
-struct music_on_wall_widgetEntryView : View {
-    var entry: Provider.Entry
-
-    var body: some View {
-        VStack {
-            HStack {
-                Text("Time:")
-                Text(entry.date, style: .time)
-            }
-
-            Text("Emoji:")
-            Text(entry.emoji)
-        }
-    }
-}
-
+//위젯 본체
 struct music_on_wall_widget: Widget {
-    let kind: String = "music_on_wall_widget"
-
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            if #available(macOS 14.0, *) {
-                music_on_wall_widgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
-            } else {
-                music_on_wall_widgetEntryView(entry: entry)
-                    .padding()
-                    .background()
+        StaticConfiguration(kind: "music-on-wall-widget", provider: Provider()) { entry in
+            VStack {
+                Button("▶ / ⏸") {
+                    Task {
+                        try? await PlayPauseIntent().perform()
+                    }
+                }
             }
         }
-        .configurationDisplayName("My Widget")
-        .description("This is an example widget.")
+        .configurationDisplayName("Music Remote")
+        .description("Quick play/pause for Apple Music.")
     }
 }
